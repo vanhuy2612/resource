@@ -1,0 +1,61 @@
+version: '3.7'
+services:
+  oracle:
+    container_name: oracle
+    hostname: oracle
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    ports:
+      - 1521:1521
+      - 5500:5500
+    volumes:
+      - ./.docker/data:/opt/oracle/oradata
+      - ./startup/init.sql:/opt/oracle/scripts/startup/init.sql
+    environment: 
+      - ORACLE_PWD=123456
+      - ORACLE_PDB=FLOMS
+  
+  debezium:
+    image: debezium/connect:latest
+    restart: always
+    container_name: debezium
+    hostname: debezium
+    depends_on:
+      - oracle
+    ports:
+      - '8083:8083'
+    environment:
+      BOOTSTRAP_SERVERS: 10.100.30.105:39091,10.100.30.105:39092,10.100.30.105:39093
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      STATUS_STORAGE_TOPIC: connect_statuses
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      ENABLE_DEBEZIUM_SCRIPTING: 'true'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '--silent',
+          '--fail',
+          '-X',
+          'GET',
+          'http://localhost:8083/connectors',
+        ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  debezium-ui:
+    image: debezium/debezium-ui:latest
+    restart: always
+    container_name: debezium-ui
+    hostname: debezium-ui
+    depends_on:
+      debezium:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    environment:
+      KAFKA_CONNECT_URIS: http://debezium:8083
