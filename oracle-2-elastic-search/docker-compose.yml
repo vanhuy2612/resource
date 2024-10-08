@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   oracle:
+    platform: linux/x86_64
     container_name: oracle
     hostname: oracle
     image: container-registry.oracle.com/database/express:21.3.0-xe
@@ -15,6 +16,7 @@ services:
       - ORACLE_PDB=FLOMS
   
   debezium:
+    platform: linux/x86_64
     image: debezium/connect:latest
     restart: always
     container_name: debezium
@@ -48,6 +50,7 @@ services:
       timeout: 5s
       retries: 5
   debezium-ui:
+    platform: linux/x86_64
     image: debezium/debezium-ui:latest
     restart: always
     container_name: debezium-ui
