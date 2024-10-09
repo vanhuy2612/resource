@@ -1,7 +1,21 @@
 alter session set "_ORACLE_SCRIPT"=true; 
 CREATE USER remote IDENTIFIED BY 123456;
+GRANT CONNECT TO sys;
+GRANT CONNECT TO system;
 GRANT CONNECT TO remote;
+GRANT SELECT ON 'V$DATABASE' TO remote;
+GRANT SELECT ON 'V$ARCHIVE_DEST_STATUS' TO remote;
+GRANT SELECT ON 'V$LOG' TO remote;
+GRANT SELECT ON 'V$ARCHIVED_LOG' TO remote;
+GRANT SELECT ON 'V$LOGMNR_LOGS' TO remote;
+GRANT SELECT ON 'V$THREAD' TO remote;
+GRANT SELECT ON 'V$LOGFILE' TO remote;
+GRANT SELECT ON 'V$PARAMETER' TO remote;
+GRANT CREATE TABLE TO remote;
+GRANT EXECUTE ON sys.dbms_logmnr TO remote;
+grant execute on sys.DBMS_LOGMNR_D TO remote;
 
+ALTER USER system quota unlimited ON USERS;
 ALTER USER sys quota unlimited ON USERS;
 ALTER USER remote quota unlimited ON USERS;
 
@@ -9,3 +23,13 @@ create table REMOTE."User" (
 	ID NUMBER GENERATED ALWAYS as IDENTITY(START with 1 INCREMENT by 1),
 	NAME VARCHAR2(100) NULL
 );
+
+-- Assign privileges to schema REMOTE execute package
+GRANT EXECUTE ON sys.dbms_logmnr TO REMOTE;
+
+-- Carefully: this will change ARCHIVELOG Mode, need admin permission
+SHUTDOWN IMMEDIATE;
+STARTUP MOUNT;
+ALTER DATABASE ARCHIVELOG;
+ALTER DATABASE OPEN;
+ALTER SYSTEM SWITCH LOGFILE;

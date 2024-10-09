@@ -1,4 +1,5 @@
 1. Run docker-compose.yml
+  Run Oracle CLI docker : sqlplus
 2. Combine Oracle with Debezium:
 + Connect to Oracle as an admin : ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
 + Enable ARCHIVELOG mode : 
@@ -33,4 +34,4 @@ body: {
     "database.stream.offset.flush.interval.ms": "1000"
   }
 }
-{topic.prefix=FLEX_2_ELASTIC_SEARCH, database.user=remote, database.dbname=XE, schema.history.internal.kafka.topic=FLEX_HIS, database.hostname=oracle, database.pdb.name=REMOTE, database.password=********, schema.history.internal.kafka.bootstrap.servers=10.100.30.105:39091,10.100.30.105:39092,10.100.30.105:39093, database.port=1521}
+{topic.prefix=FLEX_2_ELASTIC_SEARCH, database.user=remote, database.dbname=XE, schema.history.internal.kafka.topic=FLEX_HIS, database.hostname=oracle, database.pdb.name=, database.password=********, schema.history.internal.kafka.bootstrap.servers=10.100.30.105:39091,10.100.30.105:39092,10.100.30.105:39093, database.port=1521}
