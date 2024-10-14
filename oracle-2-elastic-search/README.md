@@ -1,53 +1,41 @@
 1. Run docker-compose.yml
+  NOTE: KHÔNG được phép tạo user bằng chế độ : alter session set "_ORACLE_SCRIPT"=true; 
   Run Oracle CLI docker : sqlplus
-  Tạo user fix lỗi chạy sys.dbms_logmnr.... user not exist:
+  Tạo user fix lỗi chạy sys.dbms_logmnr.... user not exist, phải tạo theo format c##<username>:
 -- create admin user on CDB
-CREATE USER c##remote IDENTIFIED BY 123456 DEFAULT TABLESPACE users QUOTA UNLIMITED ON users ACCOUNT UNLOCK
--- allow access to all PDBs to the admin user
-ALTER USER c##remote SET CONTAINER_DATA=ALL CONTAINER=CURRENT
-
+CREATE USER c##remote IDENTIFIED BY 123456 CONTAINER=ALL ;
 -- grant needed permissions
-GRANT RESOURCE, CONNECT TO c##remote;
-GRANT CREATE SESSION TO c##remote;
-GRANT SET CONTAINER TO c##remote;
-GRANT SELECT ON V_$DATABASE to c##remote;
-GRANT FLASHBACK ANY TABLE TO c##remote;
+GRANT RESOURCE,
+	CONNECT,
+	CREATE SESSION,
+  ALTER SESSION,
+  SELECT ANY TRANSACTION,
+  SELECT ANY TABLE,
+  SELECT ANY DICTIONARY
+  TO c##remote container=all;
 GRANT SELECT ANY TABLE TO c##remote;
 GRANT SELECT_CATALOG_ROLE TO c##remote;
 GRANT EXECUTE_CATALOG_ROLE TO c##remote; 
 GRANT SELECT ANY TRANSACTION TO c##remote;
 GRANT LOGMINING TO c##remote;
 
-GRANT CREATE TABLE TO c##remote;
-GRANT LOCK ANY TABLE TO c##remote;
-GRANT CREATE SEQUENCE TO c##remote;
+GRANT CREATE TABLE, UNLIMITED TABLESPACE TO c##remote;
+GRANT CREATE SEQUENCE, CREATE VIEW TO c##remote;
+GRANT EXECUTE ON SYS.DBMS_LOGMNR TO c##remote container=all;
+GRANT EXECUTE ON DBMS_LOGMNR_D TO c##remote container=all;
 
-GRANT EXECUTE ON SYS.DBMS_LOGMNR TO c##remote;
-GRANT EXECUTE ON SYS.DBMS_LOGMNR_D TO c##remote;
-GRANT EXECUTE ON DBMS_LOGMNR TO c##remote;
-GRANT EXECUTE ON DBMS_LOGMNR_D TO c##remote;
-
-GRANT SELECT ON V_$LOG TO c##remote;
-GRANT SELECT ON V_$LOG_HISTORY TO c##remote;
-GRANT SELECT ON V_$LOGMNR_LOGS TO c##remote;
-GRANT SELECT ON V_$LOGMNR_CONTENTS TO c##remote;
-GRANT SELECT ON V_$LOGMNR_PARAMETERS TO c##remote;
-GRANT SELECT ON V_$LOGFILE TO c##remote;
-GRANT SELECT ON V_$ARCHIVED_LOG TO c##remote;
-GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO c##remote;
-GRANT SELECT ON V_$TRANSACTION TO c##remote;
-GRANT SELECT ANY DICTIONARY TO c##remote;
-
--- SELECT 
-SELECT * FROM dba_users;
-DROP USER c##remote CASCADE;
-SELECT banner FROM v$version WHERE ROWNUM = 1;
-
-SELECT * FROM USER_SYS_PRIVS WHERE USERNAME = 'C##REMOTE'; 
-SELECT * FROM USER_TAB_PRIVS WHERE GRANTEE ='C##REMOTE';
-SELECT * FROM USER_ROLE_PRIVS;
-select * from session_roles;
-SELECT * FROM all_objects WHERE object_name = 'DBMS_LOGMNR';
+GRANT SELECT ON V_$DATABASE to c##remote container=all;
+GRANT SELECT ON V_$LOG TO c##remote container=all;
+GRANT SELECT ON V_$LOG_HISTORY TO c##remote container=all;
+GRANT SELECT ON V_$LOGMNR_LOGS TO c##remote container=all;
+GRANT SELECT ON V_$LOGMNR_CONTENTS TO c##remote container=all;
+GRANT SELECT ON V_$LOGMNR_PARAMETERS TO c##remote container=all;
+GRANT SELECT ON V_$LOGFILE TO c##remote container=all;
+GRANT SELECT ON V_$ARCHIVED_LOG TO c##remote container=all;
+GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO c##remote container=all;
+GRANT SELECT ON V_$TRANSACTION TO c##remote container=all;
+GRANT SELECT ON V_$LOGMNR_DICTIONARY TO c##remote container=all;
+GRANT SELECT ANY DICTIONARY TO c##remote container=all;
 
 2. Combine Oracle with Debezium:
 + Connect to Oracle as an admin : ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
