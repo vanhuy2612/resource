@@ -83,7 +83,10 @@ BEGIN
 END;
 
 2. Combine Oracle with Debezium:
-
+Note:
++ Khi cài đặt Mapping properties: 
+Decimal handling -> option double // Ex: AQ== tương đương với 1
+....
 3. Set up Debezium
 Create connect between Oracle and Debezium
 POST :  http://localhost:8083/connectors 
