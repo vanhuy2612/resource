@@ -2,28 +2,40 @@
   NOTE: KHÔNG được phép tạo user bằng chế độ : alter session set "_ORACLE_SCRIPT"=true; 
   Run Oracle CLI docker : sqlplus
   Tạo user fix lỗi chạy sys.dbms_logmnr.... user not exist, phải tạo theo format c##<username>:
+-- 1. Chuyển DB sang chế độ ARCHIVELOG Mode
+-- Carefully: this will change ARCHIVELOG Mode, need admin permission
+SHUTDOWN IMMEDIATE;
+STARTUP MOUNT;
+ALTER DATABASE ARCHIVELOG;
+ALTER DATABASE OPEN;
+ALTER SYSTEM SWITCH LOGFILE;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+
+-- 2. Tạo user cho debezium, chạy bằng user sys or admin
 -- create admin user on CDB
 CREATE USER c##remote IDENTIFIED BY 123456 CONTAINER=ALL ;
+
+-- 3. Gán quyền cần thiết cho user debezium vừa tạo, chạy bằng user sys or admin
 -- grant needed permissions
 GRANT RESOURCE,
 	CONNECT,
 	CREATE SESSION,
-  ALTER SESSION,
-  SELECT ANY TRANSACTION,
-  SELECT ANY TABLE,
-  SELECT ANY DICTIONARY
-  TO c##remote container=all;
-GRANT SELECT ANY TABLE TO c##remote;
-GRANT SELECT_CATALOG_ROLE TO c##remote;
-GRANT EXECUTE_CATALOG_ROLE TO c##remote; 
-GRANT SELECT ANY TRANSACTION TO c##remote;
-GRANT LOGMINING TO c##remote;
+    ALTER SESSION,
+    CREATE TABLE,
+    UNLIMITED TABLESPACE,
+    CREATE SEQUENCE,
+    CREATE VIEW
+    TO c##remote container=all;
 
-GRANT CREATE TABLE, UNLIMITED TABLESPACE TO c##remote;
-GRANT CREATE SEQUENCE, CREATE VIEW TO c##remote;
+-- privileges for execute LogMiner
+GRANT LOGMINING TO c##remote;
+GRANT EXECUTE_CATALOG_ROLE TO c##remote; 
 GRANT EXECUTE ON SYS.DBMS_LOGMNR TO c##remote container=all;
 GRANT EXECUTE ON DBMS_LOGMNR_D TO c##remote container=all;
 
+-- SELECT_CATALOG_ROLE dùng để lấy dbms_metadata.get_ddl của schema khác 
+GRANT SELECT_CATALOG_ROLE TO c##remote container=all;
+-- privileges for read LogMiner
 GRANT SELECT ON V_$DATABASE to c##remote container=all;
 GRANT SELECT ON V_$LOG TO c##remote container=all;
 GRANT SELECT ON V_$LOG_HISTORY TO c##remote container=all;
@@ -37,17 +49,41 @@ GRANT SELECT ON V_$TRANSACTION TO c##remote container=all;
 GRANT SELECT ON V_$LOGMNR_DICTIONARY TO c##remote container=all;
 GRANT SELECT ANY DICTIONARY TO c##remote container=all;
 
+-- 4.Gán các quyền truy cập vào schema khác cho user debezium
+-- Asign all privileges to other schema
+BEGIN
+   FOR objects IN
+   (
+         SELECT 'GRANT ALL ON "'||owner||'"."'||object_name||'" TO c##remote' grantSQL
+           FROM all_objects
+          WHERE owner = 'C##REMOTE_1'
+            AND object_type NOT IN
+                (
+                   --Ungrantable objects.  Your schema may have more.
+                   'SYNONYM', 'INDEX', 'INDEX PARTITION', 'DATABASE LINK',
+                   'LOB', 'TABLE PARTITION', 'TRIGGER'
+                )
+       ORDER BY object_type, object_name
+   ) LOOP
+      BEGIN
+         EXECUTE IMMEDIATE objects.grantSQL;
+      EXCEPTION WHEN OTHERS THEN
+         --Ignore ORA-04063: view "X.Y" has errors.
+         --(You could potentially workaround this by creating an empty view,
+         -- granting access to it, and then recreat the original view.) 
+         IF SQLCODE IN (-4063) THEN
+            NULL;
+         --Raise exception along with the statement that failed.
+         ELSE
+            raise_application_error(-20000, 'Problem with this statement: ' ||
+               objects.grantSQL || CHR(10) || SQLERRM);
+         END IF;
+      END;
+   END LOOP;
+END;
+
 2. Combine Oracle with Debezium:
-+ Connect to Oracle as an admin : ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
-+ Enable ARCHIVELOG mode : 
-    SELECT log_mode FROM v$database;
-    -- If not in ARCHIVELOG mode, switch to ARCHIVELOG mode:
-    SHUTDOWN IMMEDIATE;
-    STARTUP MOUNT;
-    ALTER DATABASE ARCHIVELOG;
-    ALTER DATABASE OPEN;
-+ Set up Redo/Undo Logging
-    ALTER SYSTEM SWITCH LOGFILE;
+
 3. Set up Debezium
 Create connect between Oracle and Debezium
 POST :  http://localhost:8083/connectors 
