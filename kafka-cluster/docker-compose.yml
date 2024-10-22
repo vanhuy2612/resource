@@ -1,5 +1,11 @@
 version: "3.8"
-
+volumes:
+  kafka-broker-1:
+  kafka-broker-2:
+  kafka-broker-3:
+  kafka-ctrl-1:
+  kafka-ctrl-2:
+  kafka-ctrl-3:
 services:
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.6.0
@@ -27,6 +33,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@controller-1:29092,2@controller-2:29092,3@controller-3:29092"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka-ctrl-1:/var/lib/kafka/data
 
   controller-2:
     image: confluentinc/cp-kafka:7.6.0
@@ -43,6 +51,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@controller-1:29092,2@controller-2:29092,3@controller-3:29092"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka-ctrl-2:/var/lib/kafka/data
 
   controller-3:
     image: confluentinc/cp-kafka:7.6.0
@@ -60,6 +70,8 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@controller-1:29092,2@controller-2:29092,3@controller-3:29092"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka-ctrl-3:/var/lib/kafka/data
 
   broker-1:
     image: confluentinc/cp-kafka:7.6.0
@@ -78,10 +90,11 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LISTENERS: "PLAINTEXT://broker-1:29092"
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     depends_on:
       - controller-3
+    volumes:
+      - kafka-broker-1:/var/lib/kafka/data
 
   broker-2:
     image: confluentinc/cp-kafka:7.6.0
@@ -102,8 +115,9 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LISTENERS: "PLAINTEXT://broker-2:29092"
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka-broker-2:/var/lib/kafka/data
 
   broker-3:
     image: confluentinc/cp-kafka:7.6.0
@@ -124,5 +138,6 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_LISTENERS: "PLAINTEXT://broker-3:29092"
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_LOG_DIRS: "/tmp/kraft-combined-logs"
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka-broker-3:/var/lib/kafka/data
